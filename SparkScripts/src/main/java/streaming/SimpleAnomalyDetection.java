@@ -38,10 +38,24 @@ public class SimpleAnomalyDetection {
         System.out.println(Runtime.getRuntime().availableProcessors());
 
         Integer limit = Integer.parseInt(args[0]);
+        Integer duration = Integer.parseInt(args[1]);
+
+        //For measuring proccessing time
+        String firstRow = null;
+        String lastRow = null;
+        boolean shouldMeasureTime = false;
+        if(args.length > 2){
+            firstRow = args[2];
+            lastRow = args[3];
+            shouldMeasureTime = true;
+        }
+        final boolean shouldMeasure = shouldMeasureTime;
+        final Consumption firstRowConsumption = shouldMeasure ? new Consumption(firstRow) : null;
+        final Consumption lastRowConsumption = shouldMeasure ? new Consumption(lastRow) : null;
 
         // Create context with a 2 seconds batch interval
         SparkConf sparkConf = new SparkConf().setAppName("SimpleAnomalyDetection").set("spark.cassandra.connection.host", "127.0.0.1");
-        JavaStreamingContext jssc = new JavaStreamingContext(sparkConf, Durations.seconds(2));
+        JavaStreamingContext jssc = new JavaStreamingContext(sparkConf, Durations.seconds(duration));
 
         Set<String> topicsSet = new HashSet<>(Arrays.asList(Constants.METRICS_DATA_TOPIC.split(",")));
 
@@ -55,17 +69,18 @@ public class SimpleAnomalyDetection {
         JavaDStream<String> lines = messages.map(ConsumerRecord::value);
         JavaDStream<Consumption> consumptions = lines.map(line -> new Consumption(line));
 
-
         consumptions.foreachRDD(consums -> {
             consums.foreachPartition(partitionOfConsumptions -> {
                 try {
-                    HttpClient client = new HttpClient("http://localhost:8080");
+                    HttpClient client = new HttpClient("http://localhost:9090");
                     while (partitionOfConsumptions.hasNext()) {
                         Consumption consumption = partitionOfConsumptions.next();
 
                         //for measuring time of processing all data
-                        ifEqualThenPublishCurrentDate(consumption.getMeasurementTimestamp(), TimeHelper.getDateFromString("2014-10-15 10:45:00"), KafkaHelper.getDefaultKafkaParams());
-                        ifEqualThenPublishCurrentDate(consumption.getMeasurementTimestamp(), TimeHelper.getDateFromString("2015-12-31 23:54:00"), KafkaHelper.getDefaultKafkaParams());
+                        if(shouldMeasure) {
+                            ifEqualThenPublishCurrentDate(firstRowConsumption, consumption, KafkaHelper.getDefaultKafkaParams());
+                            ifEqualThenPublishCurrentDate(lastRowConsumption, consumption, KafkaHelper.getDefaultKafkaParams());
+                        }
 
                         if(consumption.getConsumption() > limit){
                             MetricBuilder builder = MetricBuilder.getInstance();
