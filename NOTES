@@ -1,0 +1,150 @@
+SCALA works only with JAVA 8 
+
+SCALA_VERSION=2.11
+JAVA_VERSION=8
+
+CASSANDRA......................
+Cassandra info:
+https://www.rosehosting.com/blog/how-to-install-apache-cassandra-on-ubuntu-16-04/
+cassandra packages location: /etc/cassandra/ (use dpkg -L package to find out where package is installed)
+cqlsh -> to connect to cassandra
+switch to namespace: use platform;
+create keyspace -> create keyspace platform with replication = {'class':'SimpleStrategy','replication_factor':1};
+switch to keyspace -> use platform
+create table consumptions (id int, apartmentId int, dateOfMeasurment date, consumption double, PRIMARY KEY(id));
+CREATE TABLE platform.consumptions (
+    id int,
+    measurement_timestamp timestamp,
+    consumption double,
+    PRIMARY KEY (id, measurement_timestamp)
+)
+insert row: INSERT INTO CONSUMPTIONS (ID, MEASUREMENT_TIMESTAMP, CONSUMPTION) VALUES (1, dateof(now()), 33.4);
+
+SparkCassandraConnector -> https://github.com/datastax/spark-cassandra-connector/blob/master/doc/7_java_api.md#saving-data-to-cassandra
+
+
+
+
+KAIROS..........................
+KirosDB:
+configuration  ->  conf/kairosdb.properties 
+./kairosdb.sh run
+
+
+
+
+ZOOKEEPER.......................
+Start Zookeeper before running Kafka:
+EMBEDDED IN KAFKA:
+./bin/zookeeper-server-start.sh config/zookeeper.properties
+STANDALONE:
+/usr/local/zookeeper/bin/zkServer.sh start
+
+
+
+
+KAFKA...........................
+Start Kafka server:
+bin/kafka-server-start.sh config/server.properties
+
+Create Kafka topic:
+bin/kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic spark-test
+
+Delete topic:
+bin/kafka-topics.sh --delete --zookeeper localhost:2181 --topic test
+
+Show topics:
+bin/kafka-topics.sh --list --zookeeper localhost:2181
+
+Run Kafka producer:
+cd ~/Desktop/master-thesis/platform/kafka_2.11-2.0.0
+bin/kafka-console-producer.sh --broker-list localhost:9092 --topic spark-test
+
+OPTIONAL Run Kafka console consumer (--from-beginning means that after start this consumer will receive all message from beginning):
+bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic test --from-beginning
+
+
+
+APACHE SPARK....................
+Submitting spark streaming job:
+./bin/spark-submit --class streaming.JavaDirectKafkaWordCount --master local ~/IdeaProjects/BigDataPlatform/target/bigdata-1.0-SNAPSHOT-jar-with-dependencies.jar localhost:9092 spark-testi
+
+./bin/spark-submit --class streaming.SimpleAnomalyDetection --master local[*] ~/IdeaProjects/BigDataPlatform/SparkScripts/target/bigdata-1.0-SNAPSHOT-jar-with-dependencies.jar 10 5 "1,2015-01-01 00:00:00,1.389038889" "1,2015-01-01 02:15:00,0.830377778"
+
+Submitting batch job to spark:
+./bin/spark-submit --class WordCount --master local ~/IdeaProjects/BigDataPlatform/target/bigdata-1.0-SNAPSHOT.jar /home/peter/Desktop/master-thesis/datasets/apartment/2014/Apt1_2014.csv 
+
+master on different machine:  --master spark://207.184.161.138:7077
+
+
+
+HBASE...........................
+It looks like your zookeeper process is already running. Or (much less likely), something else is already listening on port 2181 or 2888. Did you install a separate zookeeper package and start it?
+If so, you'll need to tell HBase not to start zookeeper automatically. Edit the conf/hbase-env.sh file and add the line:
+export HBASE_MANAGES_ZK=false
+
+
+
+GRAFANA..........................
+START GRAFANA:
+sudo service grafana-server start
+http://127.0.0.1:3000/login
+user: admin
+password: admin
+
+
+
+
+APACHE STORM.....................
+START NIMBUS:
+bin/storm nimbus
+
+START SUPERVISOR:
+bin/storm supervisor
+
+SUBMIT JOB:
+bin/storm jar jar-with-dependencies.jar argument1 argmuent2
+
+START UI:
+bin/storm ui
+http://localhost:8080
+
+
+
+
+APACHE SAMZA....................
+BOOTSTRAP ZOOKEEPER, KAFKA, YARN:
+./bin/grid bootstrap
+
+CONFIGURATION OF JOB:
+src/main/config/simple-anomaly-detection.properties
+
+BUILD AND UNZIP:
+mvn clean package
+tar -xvf ./target/hello-samza-1.0.0-dist.tar.gz -C deploy/samza
+
+DEPLOY TO SAMZA:
+root@peter-N56VJ:~/IdeaProjects/BigDataPlatform/hello-samza# ./deploy/samza/bin/run-app.sh --config-factory=org.apache.samza.config.factories.PropertiesConfigFactory --config-path=file://$PWD/deploy/samza/config/simple-anomaly-detection.properties
+
+ACCESS UI:
+http://localhost:8088
+
+
+
+
+APACHE FLINK....................
+START CLUSTER:
+./bin/start-cluster.sh
+
+SUBMIT JOB:
+./bin/flink run examples/streaming/SocketWindowWordCount.jar --port 9000
+./bin/flink run -c streaming.SimpleAnomalyDetection /home/peter/IdeaProjects/BigDataPlatform/Flink/target/flink.big.data-1.0-SNAPSHOT-jar-with-dependencies.jar
+WITH LIMIT SPECIFIED: ./bin/flink run -c streaming.SimpleAnomalyDetection /home/peter/IdeaProjects/BigDataPlatform/Flink/target/flink.big.data-1.0-SNAPSHOT-jar-with-dependencies.jar --limit 10
+
+ACCESS UI:
+http://localhost:8081
+
+
+
+
+

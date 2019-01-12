@@ -22,7 +22,7 @@ import java.net.MalformedURLException;
 import java.text.ParseException;
 import java.util.*;
 
-public class KafkaWordCount {
+public class SimpleAnomalyDetection {
 
     public static class KafkaInputProccessor extends BaseBasicBolt {
 
