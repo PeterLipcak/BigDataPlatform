@@ -12,4 +12,10 @@ public class TimeHelper {
         return simpleDateFormat.parse(date);
     }
 
+    public static String getStringFromDate(Date date) throws ParseException {
+        String pattern = "yyyy-MM-dd HH:mm:ss";
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
+        return simpleDateFormat.format(date);
+    }
+
 }

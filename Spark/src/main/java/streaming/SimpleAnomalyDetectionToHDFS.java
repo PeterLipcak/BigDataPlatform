@@ -13,20 +13,14 @@ import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.apache.spark.streaming.kafka010.ConsumerStrategies;
 import org.apache.spark.streaming.kafka010.KafkaUtils;
 import org.apache.spark.streaming.kafka010.LocationStrategies;
-
-import java.io.IOException;
-import java.util.*;
-
-import org.joda.time.DateTime;
-import org.kairosdb.client.HttpClient;
-import org.kairosdb.client.builder.*;
 import utils.Constants;
 import utils.KafkaHelper;
-import utils.TimeHelper;
 
-import static utils.KafkaHelper.ifEqualThenPublishCurrentDate;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
-public class SimpleAnomalyDetection {
+public class SimpleAnomalyDetectionToHDFS {
 
     public static void main(String[] args) throws Exception {
         if (args.length < 1) {
@@ -58,19 +52,23 @@ public class SimpleAnomalyDetection {
         JavaDStream<String> lines = messages.map(ConsumerRecord::value);
         JavaDStream<Consumption> consumptions = lines.map(line -> new Consumption(line));
 
+//        consumptions.foreachRDD(consums -> {
+//            consums.foreachPartition(partitionOfConsumptions -> {
+//                Producer<String, String> kafkaProducer = new KafkaProducer(KafkaHelper.getDefaultKafkaParams());
+//                while (partitionOfConsumptions.hasNext()) {
+//                    Consumption consumption = partitionOfConsumptions.next();
+//
+//                    if (consumption.getConsumption() > limit) {
+//                        ProducerRecord<String, String> producerRecord = new ProducerRecord(Constants.ANOMALIES_DATA_TOPIC, consumption.toString());
+//                        kafkaProducer.send(producerRecord);
+//                    }
+//                }
+//            });
+//
+//        });
+
         consumptions.foreachRDD(consums -> {
-            consums.foreachPartition(partitionOfConsumptions -> {
-                Producer<String, String> kafkaProducer = new KafkaProducer(KafkaHelper.getDefaultKafkaParams());
-                while (partitionOfConsumptions.hasNext()) {
-                    Consumption consumption = partitionOfConsumptions.next();
-
-                    if (consumption.getConsumption() > limit) {
-                        ProducerRecord<String, String> producerRecord = new ProducerRecord(Constants.ANOMALIES_DATA_TOPIC, consumption.toString());
-                        kafkaProducer.send(producerRecord);
-                    }
-                }
-            });
-
+            consums.saveAsTextFile("hdfs://localhost:9000/consumptions");
         });
 
         // Start the computation

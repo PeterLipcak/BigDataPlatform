@@ -26,13 +26,12 @@ import utils.TimeHelper;
 
 import static utils.KafkaHelper.ifEqualThenPublishCurrentDate;
 
-public class SimpleAnomalyDetection {
+public class SimpleAnomalyDetectionToKairosDB {
 
     public static void main(String[] args) throws Exception {
         if (args.length < 1) {
             System.err.println("Usage: SimpleAnomalyDetection <limit>\n" +
-                    "  <limit> if consumption exceeds this value then this metric is considered as anomaly\n" +
-                    "  <duration> spark streaming duration\n\n");
+                    "  <limit> if consumption exceeds this value then this metric is considered as anomaly\n\n");
             System.exit(1);
         }
 
@@ -41,6 +40,18 @@ public class SimpleAnomalyDetection {
         Integer limit = Integer.parseInt(args[0]);
         Integer duration = Integer.parseInt(args[1]);
 
+        //For measuring proccessing time
+        String firstRow = null;
+        String lastRow = null;
+        boolean shouldMeasureTime = false;
+        if(args.length > 2){
+            firstRow = args[2];
+            lastRow = args[3];
+            shouldMeasureTime = true;
+        }
+        final boolean shouldMeasure = shouldMeasureTime;
+        final Consumption firstRowConsumption = shouldMeasure ? new Consumption(firstRow) : null;
+        final Consumption lastRowConsumption = shouldMeasure ? new Consumption(lastRow) : null;
 
         // Create context with a 2 seconds batch interval
         SparkConf sparkConf = new SparkConf().setAppName("SimpleAnomalyDetection").set("spark.cassandra.connection.host", "127.0.0.1");
@@ -60,14 +71,28 @@ public class SimpleAnomalyDetection {
 
         consumptions.foreachRDD(consums -> {
             consums.foreachPartition(partitionOfConsumptions -> {
-                Producer<String, String> kafkaProducer = new KafkaProducer(KafkaHelper.getDefaultKafkaParams());
-                while (partitionOfConsumptions.hasNext()) {
-                    Consumption consumption = partitionOfConsumptions.next();
+                try {
+                    HttpClient client = new HttpClient("http://localhost:9090");
+                    while (partitionOfConsumptions.hasNext()) {
+                        Consumption consumption = partitionOfConsumptions.next();
 
-                    if (consumption.getConsumption() > limit) {
-                        ProducerRecord<String, String> producerRecord = new ProducerRecord(Constants.ANOMALIES_DATA_TOPIC, consumption.toString());
-                        kafkaProducer.send(producerRecord);
+                        //for measuring time of processing all data
+                        if(shouldMeasure) {
+                            ifEqualThenPublishCurrentDate(firstRowConsumption, consumption, KafkaHelper.getDefaultKafkaParams());
+                            ifEqualThenPublishCurrentDate(lastRowConsumption, consumption, KafkaHelper.getDefaultKafkaParams());
+                        }
+
+                        if(consumption.getConsumption() > limit){
+                            MetricBuilder builder = MetricBuilder.getInstance();
+                            builder.addMetric("anomaly")
+                                    .addTag("customerId", String.valueOf(consumption.getId()))
+                                    .addDataPoint(consumption.getMeasurementTimestamp().getTime(), consumption.getConsumption());
+                            client.pushMetrics(builder);
+                        }
                     }
+
+                } catch (IOException exception) {
+                    exception.printStackTrace();
                 }
             });
 

@@ -26,6 +26,7 @@ SparkCassandraConnector -> https://github.com/datastax/spark-cassandra-connector
 
 
 KAIROS..........................
+VERSION: kairosdb-1.2.1-1
 KirosDB:
 configuration  ->  conf/kairosdb.properties 
 ./kairosdb.sh run
@@ -116,6 +117,12 @@ APACHE SAMZA....................
 BOOTSTRAP ZOOKEEPER, KAFKA, YARN:
 ./bin/grid bootstrap
 
+GRADLE BUILD:
+./gradlew clean build
+
+BUILD SAMZA:
+./bin/deploy.sh
+
 CONFIGURATION OF JOB:
 src/main/config/simple-anomaly-detection.properties
 
@@ -143,6 +150,53 @@ WITH LIMIT SPECIFIED: ./bin/flink run -c streaming.SimpleAnomalyDetection /home/
 
 ACCESS UI:
 http://localhost:8081
+
+
+
+AURA SERVER.....................
+PORT FORWARDING:
+ssh -L 9000:aura.fi.muni.cz:8081 xlipcak2@aisa.fi.muni.cz
+ssh -L 50070:aura.fi.muni.cz:50070 xlipcak2@aisa.fi.muni.cz -fN
+
+RUN JAVA KAFKA PRODUCER:
+HEAP SPACE 2G:
+java -Xmx2048m -cp kafka-producer-1.0-SNAPSHOT-jar-with-dependencies.jar FileToKafkaFast consumptions
+HEAP SPACE 4G:
+java -Xmx4096M -cp kafka-producer-1.0-SNAPSHOT-jar-with-dependencies.jar FileToKafkaFast consumptions
+
+
+HADOOP..........................
+START:
+/usr/local/hadoop-2.7.3/sbin/start-all.sh
+/usr/local/hadoop-2.7.3/sbin/hadoop-daemon.sh start namenode
+/usr/local/hadoop-2.7.3/sbin/hadoop-daemon.sh start datanode
+/usr/local/hadoop-2.7.3/sbin/yarn-daemon.sh start resourcemanager
+/usr/local/hadoop-2.7.3/sbin/yarn-daemon.sh start nodemanager
+/usr/local/hadoop-2.7.3/sbin/mr-jobhistory-daemon.sh start historyserver
+STOP:
+/usr/local/hadoop-2.7.3/sbin/stop-all.sh
+UI:
+http://localhost:50070
+PUT:
+hadoop fs -put customerIds.txt /
+
+
+AURA SERVER.....................
+JAVA/SCALA INSTALLATION PATH + JAVA KAFKA PRODUCER:
+/home/xlipcak2/opt
+
+SOFTWARE BINARIES:
+/var/tmp/xlipcak2
+
+
+
+
+IMPORTANT PORTS:
+SPARK: 4040
+KAFKA: 9092
+ZOOKEEPER: 2181
+FLINK: 8081
+HADOOP: 50070
 
 
 

@@ -18,7 +18,7 @@ public class KafkaHelper implements Serializable {
 
     public static Map<String, Object> getDefaultKafkaParams(){
         Map<String, Object> kafkaParams = new HashMap<>();
-        kafkaParams.put("bootstrap.servers", "localhost:9092");
+        kafkaParams.put("bootstrap.servers", "kafka:9092");
         kafkaParams.put("group.id", "test");
         kafkaParams.put("enable.auto.commit", "true");
         kafkaParams.put("auto.commit.interval.ms", "10000");
