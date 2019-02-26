@@ -48,8 +48,12 @@ public class ModelBasedAnomalyDetection {
 
         Integer duration = Integer.parseInt(args[0]);
 
+        String sparkIpPort = System.getenv("SPARK_IP_PORT");
+        String hdfsIpPort = System.getenv("HDFS_IP_PORT");
+
         SparkSession spark = SparkSession.builder()
-                .master("spark://spark-master:7077")
+//                .master("spark://spark-master:7077")
+                .master("spark://" + sparkIpPort)
                 .appName("ModelBasedAnomalyDetection")
                 .getOrCreate();
         JavaSparkContext javaSparkContext = new JavaSparkContext(spark.sparkContext());
@@ -83,40 +87,44 @@ public class ModelBasedAnomalyDetection {
                 .read()
                 .format("csv")
                 .option("inferSchema","true")
-                .csv("hdfs://namenode:8020/consumptions/expected/1550066951732/part*")
+//                .csv("hdfs://namenode:8020/consumptions/expected/1550066951732/part*")
+                .csv("webhdfs://" + hdfsIpPort + "/consumptions/expected/1550066951732/part*")
                 .toDF("compositeId","expectedConsumption");
         datasetPredicted.show(10);
         datasetPredicted.createOrReplaceTempView("predictedConsumptions");
 
         records.foreachRDD(recordsRdd -> {
-            StructType schema = DataTypes.createStructType(new StructField[] {
-                    DataTypes.createStructField("id", DataTypes.IntegerType, false),
-                    DataTypes.createStructField("timestamp", DataTypes.StringType, false),
-                    DataTypes.createStructField("consumption", DataTypes.DoubleType, false),
-                    DataTypes.createStructField("compositeId", DataTypes.StringType, false)
-            });
+            if(recordsRdd.partitions().size() > 0) {
 
-            Dataset<Row> consumptionsDataset = spark.sqlContext().createDataFrame(recordsRdd, schema);
-            consumptionsDataset.createOrReplaceTempView("consumptions");
+                StructType schema = DataTypes.createStructType(new StructField[]{
+                        DataTypes.createStructField("id", DataTypes.IntegerType, false),
+                        DataTypes.createStructField("timestamp", DataTypes.StringType, false),
+                        DataTypes.createStructField("consumption", DataTypes.DoubleType, false),
+                        DataTypes.createStructField("compositeId", DataTypes.StringType, false)
+                });
+
+                Dataset<Row> consumptionsDataset = spark.sqlContext().createDataFrame(recordsRdd, schema);
+                consumptionsDataset.createOrReplaceTempView("consumptions");
 
 //            consumptionsDataset.withColumn("result", col("") - col(""));
 
-            consumptionsDataset = spark.sqlContext().sql("SELECT c.id, c.timestamp, c.consumption, p.expectedConsumption FROM consumptions c LEFT JOIN predictedConsumptions p ON c.compositeId=p.compositeId");
-            consumptionsDataset.createOrReplaceTempView("consumptionsWithPredictions");
+                consumptionsDataset = spark.sqlContext().sql("SELECT c.id, c.timestamp, c.consumption, p.expectedConsumption FROM consumptions c LEFT JOIN predictedConsumptions p ON c.compositeId=p.compositeId");
+                consumptionsDataset.createOrReplaceTempView("consumptionsWithPredictions");
 
-            Dataset<Row> anomalies = spark.sqlContext().sql(
-                    "SELECT *" +
-                            "FROM consumptionsWithPredictions c " +
-                            "WHERE c.consumption>(c.expectedConsumption+1)*4");
+                Dataset<Row> anomalies = spark.sqlContext().sql(
+                        "SELECT *" +
+                                "FROM consumptionsWithPredictions c " +
+                                "WHERE c.consumption>(c.expectedConsumption+1)*4");
 
 
-            anomalies.foreachPartition(anomaliesPartition -> {
-                Producer<String, String> kafkaProducer = new KafkaProducer(KafkaHelper.getDefaultKafkaParams());
-                while(anomaliesPartition.hasNext()){
-                    ProducerRecord<String, String> producerRecord = new ProducerRecord(Constants.ANOMALIES_DATA_TOPIC, anomaliesPartition.next().toString());
-                    kafkaProducer.send(producerRecord);
-                }
-            });
+                anomalies.foreachPartition(anomaliesPartition -> {
+                    Producer<String, String> kafkaProducer = new KafkaProducer(KafkaHelper.getDefaultKafkaParams());
+                    while (anomaliesPartition.hasNext()) {
+                        ProducerRecord<String, String> producerRecord = new ProducerRecord(Constants.ANOMALIES_DATA_TOPIC, anomaliesPartition.next().toString());
+                        kafkaProducer.send(producerRecord);
+                    }
+                });
+            }
         });
 
 

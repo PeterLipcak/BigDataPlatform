@@ -1,0 +1,29 @@
+
+CREATE SWARM..............
+docker swarm init --listen-addr ens8:2377
+JOIN from another VM:
+docker swarm join ...
+
+STACK DEPLOYMENT..........
+FIRST CREATE REGISTRY FOR IMAGES:
+docker service create --name registry --publish published=5000,target=5000 registry:2
+CHECK SERVICES:
+docker service ls
+IN docker-compose.yml:
+servicename:
+    image: 127.0.0.1:5000/servicename
+    build: .
+--it builds the image and store in a registry we created before
+
+DEPLOY:
+docker stack deploy --compose-file docker-compose.yml big-data-analysis-platform
+
+SCALE SOME SERVICE:
+docker service scale big-data-analysis-platform_spark-worker-1=2
+
+STOP:
+docker stack rm big-data-analysis-platform
+
+RUN COMMAND INSIDE CONTAINER:
+docker exec -it namenode hadoop fs -put /data/1550066951732/ /consumptions/expected
+

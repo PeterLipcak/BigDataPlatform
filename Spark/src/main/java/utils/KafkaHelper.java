@@ -17,8 +17,10 @@ import static utils.Constants.TIMER_TOPIC;
 public class KafkaHelper implements Serializable {
 
     public static Map<String, Object> getDefaultKafkaParams(){
+        String kafkaIpPort = System.getenv("KAFKA_IP_PORT");
         Map<String, Object> kafkaParams = new HashMap<>();
-        kafkaParams.put("bootstrap.servers", "kafka:9092");
+//        kafkaParams.put("bootstrap.servers", "kafka:29092");
+        kafkaParams.put("bootstrap.servers", kafkaIpPort);
         kafkaParams.put("group.id", "test");
         kafkaParams.put("enable.auto.commit", "true");
         kafkaParams.put("auto.commit.interval.ms", "10000");
