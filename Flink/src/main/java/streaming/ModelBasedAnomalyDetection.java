@@ -68,9 +68,10 @@ public class ModelBasedAnomalyDetection {
 
 
         FlinkKafkaProducer<String> anomalies = new FlinkKafkaProducer<>(
-                "localhost:9092",            // broker list
+//                kafkaIpPort,            // broker list
                 "anomalies",                  // target topic
-                new SimpleStringSchema());
+                new SimpleStringSchema(),
+                properties);
 
 
         DataStreamSource<String> predictedConsumptions = env.readTextFile("hdfs://" + hdfsIpPort + "/consumptions/expected/1550066951732/");
@@ -96,6 +97,9 @@ public class ModelBasedAnomalyDetection {
             }
         });
 
+//        predictedConsumptionTuples.map(record -> record.toString()).addSink(anomalies);
+//        consumptionsWithCompositeId.map(record -> record.toString()).addSink(anomalies);
+
 //        consumptionsWithCompositeId.map(r -> r.toString()).addSink(anomalies);
 
         consumptionsWithCompositeId
@@ -108,6 +112,7 @@ public class ModelBasedAnomalyDetection {
                     public Tuple4<Integer, String, Double, Double> join(Tuple4 first, Tuple2 second) {
                         return new Tuple4(first.f1, first.f2, first.f3, second._2);
                     }
+//                }).map(consumptionTuple -> consumptionTuple.toString()).addSink(anomalies);
                 }).filter(consumption -> consumption.f2 > (consumption.f3*4 + 4)).map(consumptionTuple -> consumptionTuple.toString()).addSink(anomalies);
 
 

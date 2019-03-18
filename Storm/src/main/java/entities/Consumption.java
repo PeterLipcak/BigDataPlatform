@@ -1,5 +1,7 @@
 package entities;
 
+import org.apache.storm.shade.org.joda.time.DateTime;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -51,6 +53,12 @@ public class Consumption implements Serializable {
 
     public void setId(int id) {
         this.id = id;
+    }
+
+    public String getCompositeId(){
+        DateTime consumptionDate = new DateTime(measurementTimestamp);
+        String compositeId = id + "-" + consumptionDate.getYear() + "-" + consumptionDate.getDayOfYear() + "-" + consumptionDate.getHourOfDay();
+        return compositeId;
     }
 
     @Override
