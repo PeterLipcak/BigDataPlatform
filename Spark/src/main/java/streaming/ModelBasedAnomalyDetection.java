@@ -49,7 +49,7 @@ public class ModelBasedAnomalyDetection {
         Integer duration = Integer.parseInt(args[0]);
 
         String sparkIpPort = System.getenv("SPARK_IP_PORT");
-        String hdfsIpPort = System.getenv("HDFS_IP_PORT");
+        String hdfsIpPort = System.getenv("WEB_HDFS_IP_PORT");
 
         SparkSession spark = SparkSession.builder()
 //                .master("spark://spark-master:7077")

@@ -3,9 +3,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.serialization.LongDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.storm.Config;
@@ -31,74 +29,52 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.text.ParseException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.time.Duration;
+import java.util.*;
 
-public class HdfsModelBasedAnomalyDetection {
+public class ModelBasedAnomalyDetection2 {
 
     private static String kafkaUri;
     private static String zookeeperUri;
 
 
-//    public static class KafkaInputProccessor extends BaseBasicBolt {
-//
-//        public void execute(Tuple tuple, BasicOutputCollector collector) {
-//            try {
-//                Consumption consumption = new Consumption(tuple.getStringByField("value"));
-//                collector.emit(new Values(consumption.getCompositeId(),consumption.getConsumption()));
-//            } catch (ParseException e) {
-//                e.printStackTrace();
-//            }
-//        }
-//
-//        public void declareOutputFields(OutputFieldsDeclarer declarer) {
-//            declarer.declare(new Fields("key", "message"));
-//        }
-//    }
+    public static class CustomKafkaSpout extends BaseRichSpout {
+        SpoutOutputCollector _collector;
+        Consumer<String, String> consumer;
 
+        @Override
+        public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
+            _collector = collector;
 
+            String kafkaIP = System.getenv("KAFKA_IP_PORT");
 
-//    public class RandomSentenceSpout extends BaseRichSpout {
-//        SpoutOutputCollector _collector;
-//        Consumer<Long, String> consumer;
-//
-//        @Override
-//        public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
-//            _collector = collector;
-//
-//            String kafkaIP = System.getenv("KAFKA_IP_PORT");
-//            final Properties props = new Properties();
-//
-//            props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,kafkaIP);
-//            props.put(ConsumerConfig.GROUP_ID_CONFIG,"anomalyDetectionConsumer");
-//            props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,LongDeserializer.class.getName());
-//            props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,StringDeserializer.class.getName());
-//
-//            // Create the consumer using props.
-//
-//            Consumer<Long, String> consumer = new KafkaConsumer<>(props);
-//
-//            // Subscribe to the topic.
-//
-//            consumer.subscribe(Collections.singletonList("consumptions"));
-//
-//            this.consumer = consumer;
-//        }
-//
-//        @Override
-//        public void nextTuple() {
-//            consumer.
-//            _collector.emit(new Values(""));
-//        }
-//
-//        @Override
-//        public void declareOutputFields(OutputFieldsDeclarer declarer) {
-//            declarer.declare(new Fields("value"));
-//        }
-//
-//    }
+            Properties props = new Properties();
+            props.put("bootstrap.servers", kafkaIP);
+            props.put("group.id", "test");
+            props.put("enable.auto.commit", "true");
+            props.put("auto.commit.interval.ms", "1000");
+            props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+            props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+            consumer = new KafkaConsumer<>(props);
+            consumer.subscribe(Arrays.asList("consumptions"));
+        }
+
+        @Override
+        public void nextTuple() {
+
+            ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
+            for (ConsumerRecord<String, String> record : records){
+//                System.out.printf("offset = %d, key = %s, value = %s%n", record.offset(), record.key(), record.value());
+                _collector.emit(new Values(record.value()));
+            }
+        }
+
+        @Override
+        public void declareOutputFields(OutputFieldsDeclarer declarer) {
+            declarer.declare(new Fields("value"));
+        }
+
+    }
 
 
 
@@ -171,9 +147,10 @@ public class HdfsModelBasedAnomalyDetection {
     public static void main(String[] args) throws Exception {
         initEnvironmentVariables();
         TopologyBuilder builder = new TopologyBuilder();
-        builder.setSpout("consumptions", new KafkaSpout<>(KafkaSpoutConfig.builder(kafkaUri, "consumptions").build()),1).setNumTasks(1);
+        builder.setSpout("consumptions", new CustomKafkaSpout());
+//        builder.setSpout("consumptions", new KafkaSpout<>(KafkaSpoutConfig.builder(kafkaUri, "consumptions").build()),1).setNumTasks(1);
 //        builder.setBolt("recordsWithCompositeId", new KafkaInputProccessor()).shuffleGrouping("consumptions");
-        builder.setBolt("anomalies", new AnomalyDetectionProccessor(),2).setNumTasks(2).shuffleGrouping("consumptions");
+        builder.setBolt("anomalies", new AnomalyDetectionProccessor(),2).setNumTasks(4).shuffleGrouping("consumptions");
 
         Properties props = new Properties();
         props.put("bootstrap.servers", kafkaUri);

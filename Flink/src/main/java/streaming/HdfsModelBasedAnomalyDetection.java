@@ -125,10 +125,10 @@ public class HdfsModelBasedAnomalyDetection {
             }
         });
 
-        consumptionsWithCompositeId.filter(consumption -> {
+        consumptionsWithCompositeId.rebalance().filter(consumption -> {
             Double expectedConsumption = expectedConsumptions.get(consumption.f0);
             return expectedConsumption != null && expectedConsumption.doubleValue()+6 < consumption.f3;
-        }).map(c -> c.toString()).addSink(anomalies);
+        }).map(c -> c.toString()).rebalance().addSink(anomalies);
 
 
         env.execute();
