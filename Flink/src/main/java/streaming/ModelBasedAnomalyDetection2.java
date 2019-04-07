@@ -1,24 +1,26 @@
 package streaming;
 
 import entities.Consumption;
-import org.apache.flink.api.common.functions.JoinFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.java.tuple.Tuple4;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.api.datastream.DataStreamSource;
+import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
-import org.apache.flink.streaming.api.windowing.time.Time;
+import org.apache.flink.streaming.api.functions.ProcessFunction;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer;
 import org.apache.flink.table.shaded.org.joda.time.DateTime;
+import org.apache.flink.util.Collector;
+import org.apache.flink.util.OutputTag;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import scala.Tuple2;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import utils.KafkaHelper;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -31,16 +33,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
-import utils.KafkaHelper;
-
-public class HdfsModelBasedAnomalyDetection {
+public class ModelBasedAnomalyDetection2 {
 
     //    private String kafkaIpPort = "localhost:9092";
 //    private String zookeeperIpPort = "localhost:2181";
 //    private String uri = "hdfs://localhost:9000/consumptions/expected/1550066951732";
-    private static Logger LOG = LoggerFactory.getLogger(HdfsModelBasedAnomalyDetection.class);
+    private static Logger LOG = LoggerFactory.getLogger(streaming.HdfsModelBasedAnomalyDetection.class);
 
     private static String kafkaUri;
     private static String zookeeperUri;
@@ -64,27 +62,7 @@ public class HdfsModelBasedAnomalyDetection {
         DataStream<String> kafkaStream = env
                 .addSource(consumptions);
 
-//        FlinkKafkaProducer<String> metrics = new FlinkKafkaProducer<>(
-////                kafkaIpPort,            // broker list
-//                "metrics",                  // target topic
-//                new SimpleStringSchema(),
-//                properties);
-//        kafkaStream.filter(record -> {
-//            Consumption consumption = new Consumption(record);
-//            Consumption firstConsumption = new Consumption("100,2014-10-15 10:45:00,0.0");
-//            Consumption lastConsumption = new Consumption("1,2015-12-31 23:59:00,0.715816667");
-//            if (consumption.equals(firstConsumption)) {
-//                return true;
-//            } else if (consumption.equals(lastConsumption)) {
-//                return true;
-//            }
-//
-//            return false;
-//        }).map(record -> new Date().toString()).addSink(metrics);
-
-
         FlinkKafkaProducer<String> anomalies = new FlinkKafkaProducer<>(
-//                kafkaIpPort,            // broker list
                 "anomalies",                  // target topic
                 new SimpleStringSchema(),
                 properties);
@@ -122,22 +100,47 @@ public class HdfsModelBasedAnomalyDetection {
         }
         fs.close();
 
+        final OutputTag<String> outputTag = new OutputTag<String>("metrics-output"){};
 
-//        final DataStreamSource<Map<String, String>> dataStreamSource =  env.fromElements(expectedConsumptions);
+        SingleOutputStreamOperator<Tuple4<String, Integer, String, Double>> mainDataStream = kafkaStream
+                .process(new ProcessFunction<String, Tuple4<String, Integer, String, Double>>() {
 
+                    @Override
+                    public void processElement(
+                            String row,
+                            Context ctx,
+                            Collector<Tuple4<String, Integer, String, Double>> out) throws Exception {
 
-        DataStream<Tuple4<String, Integer, String, Double>> consumptionsWithCompositeId = kafkaStream.map(new MapFunction<String, Tuple4<String, Integer, String, Double>>() {
-            @Override
-            public Tuple4<String, Integer, String, Double> map(String row) throws ParseException {
-                String[] splits = row.split(",");
-                Date date = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(splits[1]);
-                DateTime consumptionDate = new DateTime(date);
-                String compositeId = splits[0] + "-" + consumptionDate.getYear() + "-" + consumptionDate.getDayOfYear() + "-" + consumptionDate.getHourOfDay();
-                return new Tuple4(compositeId, Integer.parseInt(splits[0]), splits[1], Double.parseDouble(splits[2]));
-            }
-        });
+                        Consumption consumption = new Consumption(row);
+                        Consumption firstConsumption = new Consumption("100,2014-10-15 10:45:00,0.0");
+                        Consumption lastConsumption = new Consumption("1,2015-12-31 23:59:00,0.715816667");
+                        if (consumption.equals(firstConsumption)) {
+                            ctx.output(outputTag, "FIRST " + new Date().toString());
+                        } else if (consumption.equals(lastConsumption)) {
+                            LOG.info("LAST " + new Date().toString());
+                            KafkaHelper.sendToKafka("metrics", "LAST " + new Date().toString());
+                            ctx.output(outputTag, "LAST " + new Date().toString());
+                        }
 
-        consumptionsWithCompositeId.rebalance().filter(consumption -> {
+                        String[] splits = row.split(",");
+                        Date date = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(splits[1]);
+                        DateTime consumptionDate = new DateTime(date);
+                        String compositeId = splits[0] + "-" + consumptionDate.getYear() + "-" + consumptionDate.getDayOfYear() + "-" + consumptionDate.getHourOfDay();
+
+                        out.collect(new Tuple4(compositeId, Integer.parseInt(splits[0]), splits[1], Double.parseDouble(splits[2])));
+
+                    }
+                });
+
+        FlinkKafkaProducer<String> metrics = new FlinkKafkaProducer<>(
+//                kafkaIpPort,            // broker list
+                "metrics",                  // target topic
+                new SimpleStringSchema(),
+                properties);
+
+        mainDataStream.getSideOutput(outputTag).addSink(metrics);
+
+        mainDataStream.rebalance().filter(consumption -> {
             Double expectedConsumption = expectedConsumptions.get(consumption.f0);
             return expectedConsumption != null && expectedConsumption.doubleValue() + 7 < consumption.f3;
         }).map(c -> c.toString()).rebalance().addSink(anomalies);
@@ -156,3 +159,6 @@ public class HdfsModelBasedAnomalyDetection {
     }
 
 }
+
+
+

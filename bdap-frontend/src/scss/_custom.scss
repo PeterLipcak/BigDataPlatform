@@ -1,0 +1,21 @@
+// Here you can add other styles
+.fileUpload {
+  //width:500px;
+  text-align: center;
+  justify-content: center;
+  align-content: center;
+  height: 80px;
+  margin-bottom: 10px;
+  border-width: 2px;
+}
+
+.pointer {
+  cursor: pointer;
+}
+
+.cardBody:hover {
+  background:rgba(0,0,0,0.3);
+  opacity: 0.8;
+  transition: all 0.5s;
+  -webkit-transition: all 0.5s;
+}

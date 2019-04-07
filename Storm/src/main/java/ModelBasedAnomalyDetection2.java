@@ -23,6 +23,7 @@ import org.apache.storm.topology.base.BaseRichSpout;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
+import util.KafkaHelper;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -134,6 +135,15 @@ public class ModelBasedAnomalyDetection2 {
                     collector.emit(new Values(consumption.getCompositeId(), consumption.getCompositeId()+ ", consumption=" + consumption + " expected=" + expectedConsumption));
                 }
 
+                Consumption firstConsumption = new Consumption("100,2014-10-15 10:45:00,0.0");
+                Consumption lastConsumption = new Consumption("1,2015-12-31 23:59:00,0.715816667");
+
+                if(consumption.equals(firstConsumption)){
+                    KafkaHelper.sendToKafka("metrics", "FIRST: " + new Date().toString());
+                }else if(consumption.equals(lastConsumption)){
+                    KafkaHelper.sendToKafka("metrics", "LAST: " + new Date().toString());
+                }
+
             } catch (ParseException e) {
                 e.printStackTrace();
             }
@@ -150,7 +160,7 @@ public class ModelBasedAnomalyDetection2 {
         builder.setSpout("consumptions", new CustomKafkaSpout());
 //        builder.setSpout("consumptions", new KafkaSpout<>(KafkaSpoutConfig.builder(kafkaUri, "consumptions").build()),1).setNumTasks(1);
 //        builder.setBolt("recordsWithCompositeId", new KafkaInputProccessor()).shuffleGrouping("consumptions");
-        builder.setBolt("anomalies", new AnomalyDetectionProccessor(),2).setNumTasks(4).shuffleGrouping("consumptions");
+        builder.setBolt("anomalies", new AnomalyDetectionProccessor(),3).setNumTasks(6).shuffleGrouping("consumptions");
 
         Properties props = new Properties();
         props.put("bootstrap.servers", kafkaUri);
@@ -168,7 +178,7 @@ public class ModelBasedAnomalyDetection2 {
 
         Config conf = new Config();
 //        conf.registerMetricsConsumer(org.apache.storm.metric.LoggingMetricsConsumer.class);
-        conf.setNumWorkers(2);
+        conf.setNumWorkers(3);
         conf.put(Config.TOPOLOGY_ACKER_EXECUTORS, 0);
         conf.setNumAckers(0);
 //        conf.set
