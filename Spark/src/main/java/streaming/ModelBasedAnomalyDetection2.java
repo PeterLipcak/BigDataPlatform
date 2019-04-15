@@ -2,6 +2,10 @@ package streaming;
 
 import entities.Consumption;
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
@@ -26,15 +30,17 @@ import utils.Constants;
 import utils.KafkaHelper;
 import utils.TimeHelper;
 
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URI;
+import java.util.*;
 
 import static org.apache.spark.sql.functions.*;
 import static org.apache.spark.sql.functions.from_unixtime;
 
-public class ModelBasedAnomalyDetection {
+public class ModelBasedAnomalyDetection2 {
 
     public static void main(String[] args) throws Exception {
         if (args.length < 1) {
@@ -48,15 +54,15 @@ public class ModelBasedAnomalyDetection {
 
         Integer duration = Integer.parseInt(args[0]);
 
-//        String sparkIpPort = System.getenv("SPARK_IP_PORT");
+        String sparkIpPort = System.getenv("SPARK_IP_PORT");
         String hdfsIpPort = System.getenv("WEB_HDFS_IP_PORT");
 
-//        final Consumption firstConsumption = new Consumption("100,2014-10-15 10:45:00,0.0");
-//        final Consumption lastConsumption = new Consumption("1,2015-12-31 23:59:00,0.715816667");
+        final Consumption firstConsumption = new Consumption("100,2014-10-15 10:45:00,0.0");
+        final Consumption lastConsumption = new Consumption("1,2015-12-31 23:59:00,0.715816667");
 
         SparkSession spark = SparkSession.builder()
 //                .master("spark://spark-master:7077")
-//                .master("spark://" + sparkIpPort)
+                .master("spark://" + sparkIpPort)
                 .appName("ModelBasedAnomalyDetection")
                 .getOrCreate();
         JavaSparkContext javaSparkContext = new JavaSparkContext(spark.sparkContext());
@@ -71,9 +77,9 @@ public class ModelBasedAnomalyDetection {
                 ConsumerStrategies.Subscribe(topicsSet, KafkaHelper.getDefaultKafkaParams()));
 
         JavaDStream<Row> records = messages.map(record -> {
-//            Consumption consumption = new Consumption(record.value());
-//            KafkaHelper.ifEqualThenPublishCurrentDate(consumption,firstConsumption);
-//            KafkaHelper.ifEqualThenPublishCurrentDate(consumption,lastConsumption);
+            Consumption consumption = new Consumption(record.value());
+            KafkaHelper.ifEqualThenPublishCurrentDate(consumption,firstConsumption);
+            KafkaHelper.ifEqualThenPublishCurrentDate(consumption,lastConsumption);
 
             String[] splits = record.value().split(",");
             Date date = TimeHelper.getDateFromString(splits[1]);
@@ -89,15 +95,7 @@ public class ModelBasedAnomalyDetection {
 
         records.print();
 
-        final Dataset<Row> datasetPredicted = spark
-                .read()
-                .format("csv")
-                .option("inferSchema","true")
-//                .csv("hdfs://namenode:8020/consumptions/expected/1550066951732/part*")
-                .csv("webhdfs://" + hdfsIpPort + "/consumptions/expected/1550066951732/part*")
-                .toDF("compositeId","expectedConsumption");
-        datasetPredicted.show(10);
-        datasetPredicted.createOrReplaceTempView("predictedConsumptions");
+        Map<String, Double> expectedConsumptions = getExpectedConsumptions();
 
         records.foreachRDD(recordsRdd -> {
             if(recordsRdd.partitions().size() > 0) {
@@ -110,18 +108,12 @@ public class ModelBasedAnomalyDetection {
                 });
 
                 Dataset<Row> consumptionsDataset = spark.sqlContext().createDataFrame(recordsRdd, schema);
-                consumptionsDataset.createOrReplaceTempView("consumptions");
 
-//            consumptionsDataset.withColumn("result", col("") - col(""));
-
-                consumptionsDataset = spark.sqlContext().sql("SELECT c.id, c.timestamp, c.consumption, p.expectedConsumption FROM consumptions c LEFT JOIN predictedConsumptions p ON c.compositeId=p.compositeId");
-                consumptionsDataset.createOrReplaceTempView("consumptionsWithPredictions");
-
-                Dataset<Row> anomalies = spark.sqlContext().sql(
-                        "SELECT *" +
-                                "FROM consumptionsWithPredictions c " +
-                                "WHERE c.consumption>(c.expectedConsumption+1)*4");
-
+                Dataset<Row> anomalies = consumptionsDataset.filter(row-> {
+                    Double expectedConsumption = expectedConsumptions.get(row.get(3));
+                    if(((Double)row.get(2) + 7) > expectedConsumption)return true;
+                    return false;
+                });
 
                 anomalies.foreachPartition(anomaliesPartition -> {
                     Producer<String, String> kafkaProducer = new KafkaProducer(KafkaHelper.getDefaultKafkaParams());
@@ -140,6 +132,48 @@ public class ModelBasedAnomalyDetection {
         // Start the computation
         jssc.start();
         jssc.awaitTermination();
+    }
+
+
+
+    private static Map<String, Double> getExpectedConsumptions() throws IOException {
+        String hdfsIP = System.getenv("HDFS_IP_PORT");
+        String hdfsUri = hdfsIP != null ? "hdfs://" + hdfsIP : "hdfs://localhost:9000";
+
+        Configuration hdfsConf = new Configuration();
+        hdfsConf.addResource(new Path("/usr/local/hadoop/etc/hadoop/core-site.xml"));
+        hdfsConf.addResource(new Path("/usr/local/hadoop/etc/hadoop/hdfs-site.xml"));
+        hdfsConf.set("fs.hdfs.impl", org.apache.hadoop.hdfs.DistributedFileSystem.class.getName());
+        hdfsConf.set("fs.file.impl", org.apache.hadoop.fs.LocalFileSystem.class.getName());
+        FileSystem fs = null;
+        try {
+            fs = FileSystem.get(new URI(hdfsUri + "/consumptions/expected/1550066951732"), hdfsConf);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        FileStatus[] fileStatus = fs.listStatus(new Path(hdfsUri + "/consumptions/expected/1550066951732"));
+
+        final Map<String, Double> expectedConsumptions = new HashMap<>();
+        for (FileStatus status : fileStatus) {
+            InputStream is = fs.open(status.getPath());
+            BufferedReader br = new BufferedReader(new InputStreamReader(is));
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (line.isEmpty()) {
+                    continue;
+                }
+                try {
+                    String[] splits = line.split(",");
+                    expectedConsumptions.put(splits[0], Double.parseDouble(splits[1]));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+        }
+        fs.close();
+
+        return expectedConsumptions;
     }
 
 }

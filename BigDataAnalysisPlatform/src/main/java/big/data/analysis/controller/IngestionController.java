@@ -28,7 +28,7 @@ public class IngestionController {
 
     @CrossOrigin
     @PostMapping("/ingestion")
-    public ResponseEntity<String> ingestion(@ModelAttribute IngestionParams ingestionParams) {
+    public ResponseEntity<String> ingestion(@RequestBody IngestionParams ingestionParams) {
 
         boolean successfullIngestion = false;
         try {
@@ -63,6 +63,25 @@ public class IngestionController {
                 .body(json);
     }
 
+    @CrossOrigin
+    @DeleteMapping("/ingestion")
+    public ResponseEntity<String> cancelIngestion(@RequestParam("id") String id) {
+        ingestionService.cancelIngestion(id);
+
+        String contentType = "application/json";
+        GsonBuilder builder = new GsonBuilder();
+        builder.serializeNulls();
+        Gson gson = builder.create();
+
+        MessageResponse messageResponse = new MessageResponse("Ingestion successfully canceled.");
+        String json = gson.toJson(messageResponse);
+        logger.info(json);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(contentType))
+                .body(json);
+    }
+
 
     @CrossOrigin
     @GetMapping("/ingestions")
@@ -83,5 +102,7 @@ public class IngestionController {
                 .contentType(MediaType.parseMediaType(contentType))
                 .body(json);
     }
+
+
 
 }

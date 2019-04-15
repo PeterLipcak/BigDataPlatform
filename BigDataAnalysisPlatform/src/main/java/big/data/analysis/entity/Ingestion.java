@@ -9,8 +9,10 @@ import java.util.List;
 @Data
 @Builder
 public class Ingestion {
+    private String id;
     private String datasetName;
-    private DateTime startTime;
+    private int ingestionType;
+    private long startTime;
     private transient Process process;
     private String status;
     private long recordsProcessed;

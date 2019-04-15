@@ -129,6 +129,12 @@ public class HdfsModelBasedAnomalyDetection {
         DataStream<Tuple4<String, Integer, String, Double>> consumptionsWithCompositeId = kafkaStream.map(new MapFunction<String, Tuple4<String, Integer, String, Double>>() {
             @Override
             public Tuple4<String, Integer, String, Double> map(String row) throws ParseException {
+                if(row.compareTo("100,2014-10-15 10:45:00,0.0") == 0){
+                    KafkaHelper.sendToKafka("metrics", "FIRST: " + DateTime.now().toString());
+                }else if(row.compareTo("1,2015-12-31 23:59:00,0.715816667") == 0){
+                    KafkaHelper.sendToKafka("metrics", "LAST: " + DateTime.now().toString());
+                }
+
                 String[] splits = row.split(",");
                 Date date = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(splits[1]);
                 DateTime consumptionDate = new DateTime(date);

@@ -2,6 +2,8 @@ import React from 'react';
 
 
 const Ingestion = React.lazy(() => import('./views/Ingestion/Ingestion'));
+const Processing = React.lazy(() => import('./views/Processing/Processing'));
+const CodeEditor = React.lazy(() => import('./views/CodeEditor/CodeEditor'));
 
 const Breadcrumbs = React.lazy(() => import('./views/Base/Breadcrumbs'));
 const Cards = React.lazy(() => import('./views/Base/Cards'));
@@ -42,6 +44,8 @@ const User = React.lazy(() => import('./views/Users/User'));
 // https://github.com/ReactTraining/react-router/tree/master/packages/react-router-config
 const routes = [
   { path: '/', exact: true, name: 'Home' },
+  { path: '/processing', exact: true, name: 'Processing', component: Processing },
+  { path: '/processing/codeeditor', name: 'CodeEditor', component: CodeEditor },
   { path: '/ingestion', name: 'Ingestion', component: Ingestion },
   { path: '/dashboard', name: 'Dashboard', component: Dashboard },
   { path: '/theme', exact: true, name: 'Theme', component: Colors },

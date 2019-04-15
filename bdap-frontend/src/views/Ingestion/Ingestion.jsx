@@ -20,6 +20,7 @@ import {AppSwitch} from '@coreui/react'
 import Dropzone from 'react-dropzone'
 import {FilePond, registerPlugin} from 'react-filepond';
 import 'filepond/dist/filepond.min.css';
+import moment from 'moment';
 import IngestionModal from "../../components/IngestionModal/IngestionModal";
 
 class Ingestion extends Component {
@@ -59,7 +60,7 @@ class Ingestion extends Component {
     this.fetchDatasets();
     this.fetchIngestions()
     this.datasetsInterval = setInterval(() => this.fetchDatasets(), 15000);
-    this.ingestionInterval = setInterval(() => this.fetchIngestions(), 15000);
+    this.ingestionInterval = setInterval(() => this.fetchIngestions(), 2000);
   }
 
   componentWillUnmount() {
@@ -114,6 +115,28 @@ class Ingestion extends Component {
       });
   };
 
+  cancelIngestion = (id) => {
+    fetch(serverIpPort + '/ingestion?id=' + id, {
+      method: "DELETE",
+    })
+      .then(response => response.json())
+      .then(data => {
+        // this.setState({alertMessage: data.message, alertVisible: true});
+        this.fetchIngestions();
+      });
+  };
+
+  getColorByStatus = (status) => {
+    if(status === "RUNNING")return 'secondary';
+    else if(status === "FINISHED")return 'success';
+    else return 'danger';
+
+  };
+
+  isRunning = (status) => {
+    return status === "RUNNING";
+  };
+
   showRunningIngestionsTable = () => {
     return (
       <Table responsive>
@@ -122,6 +145,7 @@ class Ingestion extends Component {
           <th>Dataset</th>
           <th>Time submitted</th>
           <th>Status</th>
+          <th>Actions</th>
         </tr>
         </thead>
         <tbody>
@@ -129,9 +153,19 @@ class Ingestion extends Component {
         {this.state.ingestions.map((ingestion, i) =>
           <tr key={i}>
             <td>{ingestion.datasetName}</td>
-            <td>{ingestion.startTime.iMillis}</td>
+            <td>{moment(ingestion.startTime).format("DD MMM YYYY hh:mm a").toString()}</td>
             <td>
-              <Badge color={ingestion.status === "RUNNING" ? 'success' : 'secondary'}>{ingestion.status}</Badge>
+              <Badge color={this.getColorByStatus(ingestion.status)}>{ingestion.status}</Badge>
+            </td>
+            <td>
+              {this.isRunning(ingestion.status)
+                ?
+                <i onClick={this.cancelIngestion.bind(this, ingestion.id)}
+                   className="cui-trash icons pointer">
+                </i>
+                :
+                <i className="cui-trash icons grey"/>
+              }
             </td>
           </tr>)}
 

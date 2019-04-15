@@ -6,7 +6,7 @@ public final class Constants {
         // restrict instantiation
     }
 
-    public static final String TIMER_TOPIC = "timer";
+    public static final String TIMER_TOPIC = "metrics";
     public static final String METRICS_DATA_TOPIC = "consumptions";
     public static final String ANOMALIES_DATA_TOPIC = "anomalies";
 
