@@ -210,7 +210,8 @@ class Ingestion extends Component {
               <CardBody className="cardBody pointer">
                 <div onClick={this.toggle.bind(this, i)}>
                   {/*{dataset.preview.join(" \n\n ")}*/}
-                  {dataset.preview.map((preview,i) => <p key={i}>{preview}</p>)}
+                  {/*{dataset.preview.map((preview,i) => <p key={i}>{preview}</p>)}*/}
+                  <span style={{whiteSpace: 'pre-wrap'}}>{dataset.preview.join("\n")}</span>
                 </div>
               </CardBody>
             </Card>
