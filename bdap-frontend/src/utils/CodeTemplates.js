@@ -63,7 +63,7 @@ public class Main {
                 "anomalies",                  // target topic
                 new SimpleStringSchema());
 
-        stream.filter(consumption -> {
+        stream.rebalance().filter(consumption -> {
             String[] recordSplits = consumption.split(",");
             return Double.parseDouble(recordSplits[2]) > limit;
           })
