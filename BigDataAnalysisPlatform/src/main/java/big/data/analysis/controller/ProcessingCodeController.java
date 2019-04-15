@@ -76,7 +76,7 @@ public class ProcessingCodeController {
         boolean compiled = false;
         String compilationOutput = null;
         try {
-            compilationOutput = processingCodeService.compileCode(javaProject);
+            compilationOutput = processingCodeService.compileCode(javaProject,false);
             compiled = true;
         } catch (IOException e) {
             e.printStackTrace();

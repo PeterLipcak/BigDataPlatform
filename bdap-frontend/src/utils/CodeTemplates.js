@@ -37,15 +37,20 @@ import java.util.Properties;
 
 public class Main {
 
+    private static String kafkaUri;
+    private static String zookeeperUri;
+    private static String hdfsUri;
+
     public static void main(String[] args) throws Exception {
+        initEnvironmentVariables();
         // create execution environment
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         ParameterTool parameterTool = ParameterTool.fromArgs(args);
         final double limit = 5;
 
         Properties properties = new Properties();
-        properties.setProperty("bootstrap.servers", "localhost:9092");
-        properties.setProperty("zookeeper.connect", "localhost:2181");
+        properties.setProperty("bootstrap.servers", kafkaUri);
+        properties.setProperty("zookeeper.connect", zookeeperUri);
         properties.setProperty("group.id", "test");
 
         FlinkKafkaConsumer<String> consumptions = new FlinkKafkaConsumer<>("consumptions", new SimpleStringSchema(), properties);
@@ -54,7 +59,7 @@ public class Main {
                 .addSource(consumptions);
 
         FlinkKafkaProducer<String> anomalies = new FlinkKafkaProducer<String>(
-                "localhost:9092",            // broker list
+                kafkaUri,            // broker list
                 "anomalies",                  // target topic
                 new SimpleStringSchema());
 
@@ -66,6 +71,16 @@ public class Main {
                 .addSink(anomalies);
 
         env.execute();
+    }
+
+    public static void initEnvironmentVariables(){
+        String kafkaIP = System.getenv("KAFKA_IP_PORT");
+        String zookeeperIP = System.getenv("ZOOKEEPER_IP_PORT");
+        String hdfsIP = System.getenv("HDFS_IP_PORT");
+
+        kafkaUri = kafkaIP != null ? kafkaIP : "localhost:9092";
+        zookeeperUri = zookeeperIP != null ? zookeeperIP : "localhost:2181";
+        hdfsUri = hdfsIP != null ? "hdfs://" + hdfsIP : "hdfs://localhost:9000";
     }
 
 }`;

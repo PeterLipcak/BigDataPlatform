@@ -53,12 +53,17 @@ public class ProcessingCodeService {
 
     }
 
-    public String compileCode(JavaProject javaProject) throws IOException, InterruptedException, CompilationException {
+    public String compileCode(JavaProject javaProject, boolean packageToJar) throws IOException, InterruptedException, CompilationException {
         saveCode(javaProject);
 
         ProcessBuilder builder = new ProcessBuilder();
         builder.directory(new File(bdapPath + "/projects/" + javaProject.getProjectName()));
-        builder.command("mvn","compile");
+        if(packageToJar){
+            builder.command("mvn","clean","package");
+        }else{
+            builder.command("mvn","compile");
+        }
+
         builder.redirectErrorStream(true);
 
         Process process = builder.start();
@@ -72,7 +77,7 @@ public class ProcessingCodeService {
     }
 
     public String submitCode(JavaProject javaProject) throws IOException, InterruptedException, CompilationException, FlinkSubmissionException {
-        compileCode(javaProject);
+        compileCode(javaProject,true);
 
         ProcessBuilder builder = new ProcessBuilder();
         builder.directory(new File(bdapPath + "/projects/" + javaProject.getProjectName() + "/target"));

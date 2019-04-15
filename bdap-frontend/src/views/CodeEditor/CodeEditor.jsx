@@ -51,7 +51,7 @@ class CodeEditor extends Component {
     if(event.ctrlKey && charCode === 's' || event.metaKey && charCode === 's') {
       event.preventDefault();
       console.log("Ctrl + S pressed");
-      this.onSave();
+      this.onCompile();
     }
   }
 
@@ -210,8 +210,8 @@ class CodeEditor extends Component {
                   color="primary">{this.state.submitLoading ? 'Submitting...' : 'Submit'}</Button>
           <Button onClick={this.onCompile} className="editorButtonStyle" color="dark" disabled={this.areButtonsDisabled()}
                   aria-pressed="true">{this.state.compilationLoading ? 'Compiling...' : 'Compile'}</Button>
-          <Button onClick={this.onSave} className="editorButtonStyle" color="success" disabled={this.areButtonsDisabled()}
-                  aria-pressed="true">{this.state.saveLoading ? 'Saving...' : 'Save'}</Button>
+          {/*<Button onClick={this.onSave} className="editorButtonStyle" color="success" disabled={this.areButtonsDisabled()}*/}
+                  {/*aria-pressed="true">{this.state.saveLoading ? 'Saving...' : 'Save'}</Button>*/}
         </div>
 
         <div className="codeEditorContainer">
@@ -279,6 +279,9 @@ class CodeEditor extends Component {
           }}>
           </div>
         }
+
+        <br/>
+        <br/>
 
       </div>
     );
