@@ -62,7 +62,7 @@ public class ModelBasedAnomalyDetection2 {
 
         SparkSession spark = SparkSession.builder()
 //                .master("spark://spark-master:7077")
-                .master("spark://" + sparkIpPort)
+//                .master("spark://" + sparkIpPort)
                 .appName("ModelBasedAnomalyDetection")
                 .getOrCreate();
         JavaSparkContext javaSparkContext = new JavaSparkContext(spark.sparkContext());

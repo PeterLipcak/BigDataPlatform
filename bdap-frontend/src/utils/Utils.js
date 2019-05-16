@@ -3,10 +3,14 @@ import React, {Component} from 'react';
 // export const serverIpPort = 'http://10.5.1.247:8080';
 // export const flinkServerIpPort = 'http://10.5.1.247:8081';
 
-export const serverIp = 'http://147.251.255.236';
-export const serverIpPort = 'http://147.251.255.236:8080';
-export const flinkServerIpPort = 'http://147.251.255.236:8081';
+
+export const serverIp = 'http://127.0.0.1';
+//export const serverIp = 'http://147.251.255.236';
+export const serverIpPort = serverIp + ':8080';
+export const flinkServerIpPort = serverIp + ':8081';
 export const hdfsServerIpPort = serverIp + ':50070';
+
+
 
 // export const serverIpPort = 'http://127.0.0.1:8080';
 // export const flinkServerIpPort = 'http://127.0.0.1:8081';

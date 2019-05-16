@@ -1,5 +1,7 @@
 package entities;
 
+import org.apache.flink.table.shaded.org.joda.time.DateTime;
+
 import java.io.Serializable;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;

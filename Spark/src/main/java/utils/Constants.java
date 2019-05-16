@@ -8,6 +8,7 @@ public final class Constants {
 
     public static final String TIMER_TOPIC = "metrics";
     public static final String METRICS_DATA_TOPIC = "consumptions";
+    public static final String CONSUMPTIONS_DATA_TOPIC = "consumptions";
     public static final String ANOMALIES_DATA_TOPIC = "anomalies";
 
     public static final String ANOMALIES_TABLE_NAME = "anomalies";

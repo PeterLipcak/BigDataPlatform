@@ -1,27 +1,29 @@
 package streaming;
 
-import entities.Consumption;
-import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer;
-
 import java.util.Properties;
 
 public class SimpleAnomalyDetection {
 
+    private static String kafkaUri;
+    private static String zookeeperUri;
+    private static String hdfsUri;
+
     public static void main(String[] args) throws Exception {
+        initEnvironmentVariables();
+
         // create execution environment
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        ParameterTool parameterTool = ParameterTool.fromArgs(args);
-        final Double limit = Double.parseDouble(parameterTool.getRequired("limit"));
+        final double limit = 5;
 
         Properties properties = new Properties();
-        properties.setProperty("bootstrap.servers", "localhost:9092");
-        properties.setProperty("zookeeper.connect", "localhost:2181");
+        properties.setProperty("bootstrap.servers", kafkaUri);
+        properties.setProperty("zookeeper.connect", zookeeperUri);
         properties.setProperty("group.id", "test");
 
         FlinkKafkaConsumer<String> consumptions = new FlinkKafkaConsumer<>("consumptions", new SimpleStringSchema(), properties);
@@ -30,18 +32,28 @@ public class SimpleAnomalyDetection {
                 .addSource(consumptions);
 
         FlinkKafkaProducer<String> anomalies = new FlinkKafkaProducer<String>(
-                "localhost:9092",            // broker list
+                kafkaUri,            // broker list
                 "anomalies",                  // target topic
                 new SimpleStringSchema());
 
-        stream
-                .map(kafkaRow -> new Consumption(kafkaRow))
-                .rebalance()
-                .filter(consumption -> consumption.getConsumption() > limit)
+        stream.rebalance().filter(consumption -> {
+            String[] recordSplits = consumption.split(",");
+            return Double.parseDouble(recordSplits[2]) > limit;
+        })
                 .map(c -> c.toString())
                 .addSink(anomalies);
 
         env.execute();
+    }
+
+    public static void initEnvironmentVariables(){
+        String kafkaIP = System.getenv("KAFKA_IP_PORT");
+        String zookeeperIP = System.getenv("ZOOKEEPER_IP_PORT");
+        String hdfsIP = System.getenv("HDFS_IP_PORT");
+
+        kafkaUri = kafkaIP != null ? kafkaIP : "localhost:9092";
+        zookeeperUri = zookeeperIP != null ? zookeeperIP : "localhost:2181";
+        hdfsUri = hdfsIP != null ? "hdfs://" + hdfsIP : "hdfs://localhost:9000";
     }
 
 }
