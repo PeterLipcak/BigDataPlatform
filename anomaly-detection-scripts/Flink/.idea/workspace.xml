@@ -13,11 +13,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="ModelBasedAnomalyDetection.java" pinned="false" current-in-tab="true">
+      <file leaf-file-name="ModelBasedAnomalyDetection.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/streaming/ModelBasedAnomalyDetection.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="346">
-              <caret line="110" column="61" lean-forward="false" selection-start-line="110" selection-start-column="61" selection-end-line="110" selection-end-column="61" />
+            <state relative-caret-position="54">
+              <caret line="39" column="39" lean-forward="false" selection-start-line="39" selection-start-column="13" selection-end-line="39" selection-end-column="39" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -25,7 +25,7 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="SimpleAnomalyDetection.java" pinned="false" current-in-tab="false">
+      <file leaf-file-name="SimpleAnomalyDetection.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main/java/streaming/SimpleAnomalyDetection.java">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="635">
@@ -115,7 +115,7 @@
   </component>
   <component name="ProjectFrameBounds" extendedState="6">
     <option name="x" value="65" />
-    <option name="y" value="-1084" />
+    <option name="y" value="-4" />
     <option name="width" value="1855" />
     <option name="height" value="1084" />
   </component>
@@ -365,15 +365,15 @@
       <workItem from="1557999702332" duration="5867000" />
       <workItem from="1558279329377" duration="1569000" />
       <workItem from="1558285300692" duration="1536000" />
-      <workItem from="1558287725647" duration="3788000" />
+      <workItem from="1558287725647" duration="4033000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="164134000" />
+    <option name="totallyTimeSpent" value="164379000" />
   </component>
   <component name="ToolWindowManager">
-    <frame x="65" y="-1084" width="1855" height="1084" extended-state="6" />
+    <frame x="65" y="-4" width="1855" height="1084" extended-state="6" />
     <editor active="true" />
     <layout>
       <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
@@ -727,6 +727,16 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/streaming/ModelBasedAnomalyDetection.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="54">
+          <caret line="39" column="39" lean-forward="false" selection-start-line="39" selection-start-column="13" selection-end-line="39" selection-end-column="39" />
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/streaming/SimpleAnomalyDetection.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="635">
@@ -734,16 +744,6 @@
           <folding>
             <element signature="imports" expanded="true" />
             <element signature="e#1685#1693#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/streaming/ModelBasedAnomalyDetection.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="346">
-          <caret line="110" column="61" lean-forward="false" selection-start-line="110" selection-start-column="61" selection-end-line="110" selection-end-column="61" />
-          <folding>
-            <element signature="imports" expanded="true" />
           </folding>
         </state>
       </provider>
