@@ -46,7 +46,7 @@ public class ModelBasedAnomalyDetection {
 
         //Duration of batch interval
         Integer duration = Integer.parseInt(args[0]);
-        String webHdfsIpPort = System.getenv("WEB_HDFS_IP_PORT");
+        String webHdfsIpPort = EnvironmentVariablesHelper.getWebHdfsIpPort();
 
         //Spark context creation
         SparkSession spark = SparkSession.builder()
