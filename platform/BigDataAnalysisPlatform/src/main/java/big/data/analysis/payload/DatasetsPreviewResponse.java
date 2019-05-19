@@ -5,6 +5,9 @@ import lombok.Data;
 
 import java.util.List;
 
+/**
+ * @author Peter Lipcak, Masaryk University
+ */
 @Data
 public class DatasetsPreviewResponse {
     private List<Dataset> datasets;

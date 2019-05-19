@@ -8,7 +8,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 import java.io.*;
-import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +20,11 @@ import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import utils.NumberFormatter;
 
+/**
+ * Implementation of Ingestion Manager program
+ *
+ * @author Peter Lipcak, Masaryk University
+ */
 public class Main {
 
     private static String kafkaUri;
@@ -46,6 +50,7 @@ public class Main {
     private static final int DENSIFICATION_INTERPOLATION = 2;
 
     public static void main(String... args) {
+        //Define program arguments
         Options options = new Options();
         options.addRequiredOption("t", "topic", true, "choose kafka topic");
         options.addRequiredOption("p", "path", true, "hdfs path to dataset");
@@ -94,13 +99,16 @@ public class Main {
             timerRecord = cmd.getOptionValue("timer-record");
         }
 
+        //Get environment variables of IPs and Ports
         initEnvironmentVariables();
 
+        //Custom IP and PORT of hdfs, kafka or zookeeper
         if(cmd.hasOption("hdfs-uri"))hdfsUri = cmd.getOptionValue("hdfs-uri");
         if(cmd.hasOption("kafka-uri"))kafkaUri = cmd.getOptionValue("kafka-uri");
         if(cmd.hasOption("zk-uri"))zookeeperUri = cmd.getOptionValue("zk-uri");
 
         try {
+            //Initiate ingestion
             runIngestion();
         }catch (Exception e){
             e.printStackTrace();
@@ -110,17 +118,25 @@ public class Main {
 
     }
 
+    /**
+     * Runs ingestion based on specified arguments
+     * @throws IOException
+     * @throws InterruptedException
+     * @throws java.text.ParseException
+     */
     public static void runIngestion() throws IOException, InterruptedException, java.text.ParseException {
-        System.out.println(hdfsUri);
+        //Create HDFS configuration
         Configuration hdfsConf = new Configuration();
         hdfsConf.addResource(new Path("/usr/local/hadoop/etc/hadoop/core-site.xml"));
         hdfsConf.addResource(new Path("/usr/local/hadoop/etc/hadoop/hdfs-site.xml"));
         hdfsConf.set("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem");
         FileSystem fs = FileSystem.get(hdfsConf);
 
-
+        //Measure time of ingestion
         DateTime before = new DateTime();
         lastTimestamp = new DateTime();
+
+        //Either one file or all files in directory can be ingested
         if(fs.isFile(path)){
             readAndSendFileToKafka(fs,path);
         }else{
@@ -129,6 +145,7 @@ public class Main {
                 readAndSendFileToKafka(fs, status.getPath());
             }
         }
+
         DateTime after = new DateTime();
         Duration duration = new Duration(before,after);
         allRecordsSent += recordsSent;
@@ -139,12 +156,21 @@ public class Main {
         fs.close();
     }
 
+    /**
+     * Reads dataset from hdfs and sends it to Kafka with possible densification method
+     * @param fs hdfs file system
+     * @param path to dataset
+     * @throws IOException
+     * @throws InterruptedException
+     * @throws java.text.ParseException
+     */
     private static void readAndSendFileToKafka(FileSystem fs, Path path) throws IOException, InterruptedException, java.text.ParseException {
         InputStream is = fs.open(path);
         BufferedReader br = new BufferedReader(new InputStreamReader(is));
         Producer<String, String> producer = new KafkaProducer<>(getKafkaProps());
         IDensificator densificator;
 
+        //Densify the dataset using one of two densification methods (MultiplierDensificator with densification count of one is equal to no densification)
         switch (densificationType){
             case DENSIFICATION_NONE : {
                 densificator = new MultiplierDensificator(1);
@@ -165,16 +191,21 @@ public class Main {
         String line;
         while ((line = br.readLine()) != null) {
             regulateSpeed();
+
+            //it is possible to specify record and time of generation will be sent to Kafka (it was used for latency measurement)
             if(timerRecord != null && timerRecord.equals(line))
                 producer.send(new ProducerRecord<>("timer",Long.toString(System.currentTimeMillis()), "GENERATED: " + new DateTime().toString()));
 
+            //densify based on id
             String[] recordSplits = line.split(",");
             String id = idPosition >= 0 ? recordSplits[idPosition] : "generic-id";
             String lastRecord = lastRecords.get(id);
             lastRecords.put(id,line);
 
+            //densify the records using selected densification method
             List<String> recordsToIngest = densificator.densify(lastRecord,line);
 
+            //send densified records to kafka topic
             for(String record : recordsToIngest){
                 producer.send(new ProducerRecord<>(topic,Long.toString(System.currentTimeMillis()), record));
                 recordsSent++;
@@ -184,6 +215,10 @@ public class Main {
         producer.close();
     }
 
+    /**
+     * Speed regulator
+     * @throws InterruptedException
+     */
     private static void regulateSpeed() throws InterruptedException {
         if(recordsSent>limitRecordsPerSecond){
             DateTime newTimestamp = new DateTime();
@@ -201,6 +236,9 @@ public class Main {
         }
     }
 
+    /**
+     * Loads environment variables or uses default values
+     */
     public static void initEnvironmentVariables(){
         String kafkaIP = System.getenv("KAFKA_IP_PORT");
         String zookeeperIP = System.getenv("ZOOKEEPER_IP_PORT");
@@ -211,6 +249,11 @@ public class Main {
         hdfsUri = hdfsIP != null ? "hdfs://" + hdfsIP : "hdfs://localhost:9000";
     }
 
+
+    /**
+     * Gets default Kafka properties
+     * @return Kafka properties
+     */
     private static Properties getKafkaProps(){
         Properties props = new Properties();
         props.put("bootstrap.servers", kafkaUri);

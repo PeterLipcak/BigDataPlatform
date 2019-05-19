@@ -2,26 +2,20 @@ package big.data.analysis.service;
 
 import big.data.analysis.entity.Ingestion;
 import big.data.analysis.entity.IngestionParams;
-import big.data.analysis.exception.DatasetStorageException;
 import big.data.analysis.property.DatasetStorageProperties;
 import big.data.analysis.property.IngestionProperties;
-import org.apache.commons.io.IOUtils;
-import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 
+/**
+ * Service responsible for managing ingestions
+ * @author Peter Lipcak, Masaryk University
+ */
 @Service
 public class IngestionService {
 
@@ -42,10 +36,15 @@ public class IngestionService {
         this.jarFileLocation = ingestionProperties.getJarFile();
     }
 
-
+    /**
+     * Creates process running Ingestion Manager with possible densification
+     * @param ingestionParams ingestion parameters
+     * @throws IOException
+     */
     public void runIngestion(IngestionParams ingestionParams) throws IOException {
         logger.info(ingestionParams.toString());
 
+        //Create process running ingestion manager program
         ProcessBuilder builder = new ProcessBuilder();
         List<String> command = new ArrayList<>();
         command.add("java");
@@ -91,6 +90,7 @@ public class IngestionService {
             logger.info(cmd);
         }
 
+        //Execute the program
         builder.command(command);
         Process process = builder.start();
         Ingestion ingestion = Ingestion
@@ -101,9 +101,15 @@ public class IngestionService {
                 .startTime(new Date().getTime())
                 .ingestionType(ingestionParams.getDensificationType())
                 .build();
+
+        //Adds ingestion to the list of submitted ingestions
         executedIngestions.add(ingestion);
     }
 
+    /**
+     * Gets information regarding ingestions (e.g. status RUNNING/FAILED/FINISHED, date, dataset name)
+     * @return ingestion details
+     */
     public List<Ingestion> getIngestionData(){
         List<Ingestion> ingestions = new ArrayList<>();
 
@@ -124,6 +130,10 @@ public class IngestionService {
         return ingestions;
     }
 
+    /**
+     * Cancels running ingestion
+     * @param id of ingestion
+     */
     public void cancelIngestion(String id){
         for(Ingestion ingestion : executedIngestions){
             if(ingestion.getId().equals(id)){

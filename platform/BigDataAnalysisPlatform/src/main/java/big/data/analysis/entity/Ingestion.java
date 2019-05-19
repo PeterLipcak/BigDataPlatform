@@ -6,6 +6,9 @@ import org.joda.time.DateTime;
 
 import java.util.List;
 
+/**
+ * @author Peter Lipcak, Masaryk University
+ */
 @Data
 @Builder
 public class Ingestion {

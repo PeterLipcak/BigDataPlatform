@@ -18,6 +18,10 @@ import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 import java.util.List;
 
+/**
+ * Rest controller for ingestion management
+ * @author Peter Lipcak, Masaryk University
+ */
 @RestController
 public class IngestionController {
 
@@ -26,6 +30,11 @@ public class IngestionController {
     @Autowired
     private IngestionService ingestionService;
 
+    /**
+     * Submits the ingestion based on ingestion parameters
+     * @param ingestionParams ingestion details (densification, etc.)
+     * @return submission result as JSON
+     */
     @CrossOrigin
     @PostMapping("/ingestion")
     public ResponseEntity<String> ingestion(@RequestBody IngestionParams ingestionParams) {
@@ -63,6 +72,11 @@ public class IngestionController {
                 .body(json);
     }
 
+    /**
+     * Cancels running ingestion
+     * @param id of ingestion to be canceled
+     * @return cancelling result as JSON
+     */
     @CrossOrigin
     @DeleteMapping("/ingestion")
     public ResponseEntity<String> cancelIngestion(@RequestParam("id") String id) {
@@ -83,6 +97,10 @@ public class IngestionController {
     }
 
 
+    /**
+     * Gets ingestions that had beed submitted
+     * @return JSON with ingestions details
+     */
     @CrossOrigin
     @GetMapping("/ingestions")
     public ResponseEntity<String> runningIngestion() {

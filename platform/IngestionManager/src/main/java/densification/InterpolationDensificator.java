@@ -12,6 +12,11 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
+/**
+ * Implementation interpolation densification method
+ *
+ * @author Peter Lipcak, Masaryk University
+ */
 public class InterpolationDensificator implements IDensificator {
 
     private int densificationCount;
@@ -22,6 +27,13 @@ public class InterpolationDensificator implements IDensificator {
         this.interpolators = interpolators;
     }
 
+    /**
+     * Interpolates the records based on interpolators
+     * @param record1 first record
+     * @param record2 second record
+     * @return interpolated densified records
+     * @throws ParseException
+     */
     @Override
     public List<String> densify(String record1, String record2) throws ParseException {
         List<String> recordsToIngest = new ArrayList<>();
@@ -39,6 +51,7 @@ public class InterpolationDensificator implements IDensificator {
             recordsToIngestArray[i] = firstRecordSplits.clone();
         }
 
+        //Go through interpolators and interpolate records based on type
         for(String interpolator : interpolators){
             String[] interpolatorSplits = interpolator.split(";");
             int position = Integer.parseInt(interpolatorSplits[0]);
@@ -79,11 +92,6 @@ public class InterpolationDensificator implements IDensificator {
         for(String[] row : recordsToIngestArray){
             recordsToIngest.add(String.join(",",row));
         }
-
-//        Double[] interpolatedValues = interpolate(Double.parseDouble(firstRecordSplits[2]),Double.parseDouble(secondRecordSplits[2]));
-//        for(int i=0; i<densificationCount; i++){
-//            recordsToIngest.add(firstRecordSplits[0]+ "," + firstRecordSplits[1] + "," + interpolatedValues[i]);
-//        }
 
         return recordsToIngest;
     }

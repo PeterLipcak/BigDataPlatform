@@ -29,10 +29,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Service responsible for managing datasets
+ * @author Peter Lipcak, Masaryk University
+ */
 @Service
 public class DatasetsStorageService {
-
-    private static final Logger logger = LoggerFactory.getLogger(DatasetsStorageService.class);
 
     private final Path localStorageDatasetLocation;
     private final String hdfsStorageDatasetLocation;
@@ -41,7 +43,6 @@ public class DatasetsStorageService {
     public DatasetsStorageService(DatasetStorageProperties datasetStorageProperties) {
         this.localStorageDatasetLocation = Paths.get(datasetStorageProperties.getUploadLocalDir())
                 .toAbsolutePath().normalize();
-
         this.hdfsStorageDatasetLocation = datasetStorageProperties.getUploadHdfsDir();
 
         try {
@@ -51,7 +52,11 @@ public class DatasetsStorageService {
         }
     }
 
-
+    /**
+     * Stores dataset on local file system
+     * @param file to be stored
+     * @return name of the file stored
+     */
     public String storeDatasetLocally(MultipartFile file) {
         // Normalize file name
         String fileName = StringUtils.cleanPath(file.getOriginalFilename());
@@ -72,11 +77,21 @@ public class DatasetsStorageService {
         }
     }
 
+    /**
+     * Initiates upload from local file system to hdfs
+     * @param datasetName name of the dataset to be uploaded
+     * @throws DatasetStorageException if problem during upload occurs
+     */
     public void uploadDatasetToHdfs(String datasetName) throws DatasetStorageException{
         HdfsHelper.uploadFileToHdfs(localStorageDatasetLocation.resolve(datasetName).toString(), hdfsStorageDatasetLocation + datasetName);
     }
 
+    /**
+     * Gets previews (5 lines of the dataset) of all the datasets previously uploaded
+     * @return previews of files with additional information such as file size and name
+     */
     public List<Dataset> getDatasetPreviews(){
+        //Create hdfs configuration
         Configuration hdfsConf = new Configuration();
         hdfsConf.addResource(new org.apache.hadoop.fs.Path("/usr/local/hadoop/etc/hadoop/core-site.xml"));
         hdfsConf.addResource(new org.apache.hadoop.fs.Path("/usr/local/hadoop/etc/hadoop/hdfs-site.xml"));
@@ -91,6 +106,7 @@ public class DatasetsStorageService {
         List<Dataset> datasets = new ArrayList<>();
 
         try {
+            //Iterate all the datasets
             FileStatus[] fileStatus = fs.listStatus(new org.apache.hadoop.fs.Path(EnvironmentVariablesHelper.getHdfsIpPort() + hdfsStorageDatasetLocation));
 
             for (FileStatus status : fileStatus) {
@@ -99,7 +115,7 @@ public class DatasetsStorageService {
                 String line;
 
                 List<String> preview = new ArrayList<>();
-
+                //Get previews
                 for(int i = 0; i < 5; i++){
                     line = br.readLine();
                     if(line == null)break;
@@ -126,6 +142,11 @@ public class DatasetsStorageService {
         return datasets;
     }
 
+    /**
+     * Deletes dataset from hdfs
+     * @param datasetName name of the dataset to be deleted
+     * @throws DatasetStorageException if unable to delete
+     */
     public void deleteDatasetFromHdfs(String datasetName)throws DatasetStorageException{
         HdfsHelper.deleteFileFromHdfs(hdfsStorageDatasetLocation + datasetName);
     }

@@ -2,6 +2,9 @@ package big.data.analysis.entity;
 
 import lombok.Data;
 
+/**
+ * @author Peter Lipcak, Masaryk University
+ */
 @Data
 public class JavaProject {
 

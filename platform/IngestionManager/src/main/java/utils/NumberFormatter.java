@@ -4,6 +4,11 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 
+/**
+ * Number formatter for prettier output
+ *
+ * @author Peter Lipcak, Masaryk University
+ */
 public class NumberFormatter {
 
     private static final NavigableMap<Long, String> suffixes = new TreeMap<>();

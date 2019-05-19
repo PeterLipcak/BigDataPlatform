@@ -3,6 +3,9 @@ package big.data.analysis.entity;
 import lombok.Data;
 import lombok.ToString;
 
+/**
+ * @author Peter Lipcak, Masaryk University
+ */
 @Data
 @ToString
 public class IngestionParams {

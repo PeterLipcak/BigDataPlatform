@@ -7,8 +7,16 @@ import org.apache.hadoop.fs.Path;
 
 import java.io.IOException;
 
+/**
+ * Helper for working with HDFS
+ * @author Peter Lipcak, Masaryk University
+ */
 public class HdfsHelper {
 
+    /**
+     * Get hdfs configuration
+     * @return configuration object
+     */
     private static Configuration getHadoopConf(){
         Configuration hdfsConf = new Configuration();
         hdfsConf.addResource(new org.apache.hadoop.fs.Path("/usr/local/hadoop/etc/hadoop/core-site.xml"));
@@ -20,8 +28,14 @@ public class HdfsHelper {
         return hdfsConf;
     }
 
-    public static void uploadFileToHdfs(String localPath, String hdfsPath) throws DatasetStorageException{
 
+    /**
+     * Uplaods the file from local file system to hdfs
+     * @param localPath path to local file
+     * @param hdfsPath path to hdfs destination
+     * @throws DatasetStorageException when problem during upload
+     */
+    public static void uploadFileToHdfs(String localPath, String hdfsPath) throws DatasetStorageException{
         ProcessBuilder processBuilder = new ProcessBuilder();
         processBuilder.command("hadoop", "fs", "-put", localPath, hdfsPath);
         try {
@@ -32,14 +46,13 @@ public class HdfsHelper {
         } catch (InterruptedException e) {
             throw new DatasetStorageException("Could not copy file to hdfs.", e);
         }
-//        try {
-//            FileSystem fs = FileSystem.get(getHadoopConf());
-//            fs.copyFromLocalFile(true, new Path(localPath), new Path(hdfsPath));
-//        } catch (IOException e) {
-//            throw new DatasetStorageException("Could not copy file to hdfs.", e);
-//        }
     }
 
+    /**
+     * Deletes dataset from hdfs
+     * @param hdfsPath path to dataset
+     * @throws DatasetStorageException when unable to delete
+     */
     public static void deleteFileFromHdfs(String hdfsPath) throws DatasetStorageException{
         try {
             FileSystem fs = FileSystem.get(getHadoopConf());

@@ -1,5 +1,8 @@
 package big.data.analysis.utils;
 
+/**
+ * @author Peter Lipcak, Masaryk University
+ */
 public class EnvironmentVariablesHelper {
 
     public static String get(String envVariable){

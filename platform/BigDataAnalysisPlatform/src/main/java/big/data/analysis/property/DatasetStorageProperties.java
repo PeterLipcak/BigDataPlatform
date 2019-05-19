@@ -5,6 +5,9 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+/**
+ * @author Peter Lipcak, Masaryk University
+ */
 @ConfigurationProperties(prefix = "dataset")
 @Data
 public class DatasetStorageProperties {

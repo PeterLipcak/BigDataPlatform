@@ -26,6 +26,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Rest controller for datasets management
+ * @author Peter Lipcak, Masaryk University
+ */
 @RestController
 public class DatasetsController {
 
@@ -34,11 +38,18 @@ public class DatasetsController {
     @Autowired
     private DatasetsStorageService datasetStorageService;
 
+    /**
+     * Uploads file first to local file system and then to hdfs
+     * @param file to be uploaded
+     * @return JSON response containing uploading result
+     */
     @CrossOrigin
     @PostMapping("/uploadFile")
     public ResponseEntity uploadFile(@RequestParam("filepond") MultipartFile file) {
+        //First store dataset locally
         String fileName = datasetStorageService.storeDatasetLocally(file);
 
+        //Then if successful upload dataset to hdfs
         boolean uploadedToHdfs = false;
         try{
             datasetStorageService.uploadDatasetToHdfs(fileName);
@@ -64,8 +75,6 @@ public class DatasetsController {
 
         UploadDatasetResponse udr = new UploadDatasetResponse(fileName, file.getContentType(), file.getSize());
 
-//        return udr;
-//        String response = "File: " + fileName + " successfully uploaded";
         String json = gson.toJson(udr);
         logger.info(json);
         return ResponseEntity.ok()
@@ -73,17 +82,10 @@ public class DatasetsController {
                 .body(json);
     }
 
-    @CrossOrigin
-    @PostMapping("/uploadMultipleFiles")
-    public List<UploadDatasetResponse> uploadMultipleFiles(@RequestParam("files") MultipartFile[] files) {
-        logger.info("files " + files.toString());
-//        return Arrays.asList(files)
-//                .stream()
-//                .map(file -> uploadFile(file))
-//                .collect(Collectors.toList());
-        return null;
-    }
-
+    /**
+     * Get previews of datasets stored in hdfs
+     * @return JSON with dataset previes and additional information (name, size)
+     */
     @CrossOrigin
     @GetMapping("/datasets")
     public ResponseEntity<String> previewDatasets() {
@@ -103,6 +105,11 @@ public class DatasetsController {
                 .body(json);
     }
 
+    /**
+     * Rest endpoint responsible for dataset deletion
+     * @param dataset name to be deleted
+     * @return deletion result as JSON
+     */
     @CrossOrigin
     @DeleteMapping("/datasets")
     public ResponseEntity<String> deleteDataset(@RequestParam("dataset") String dataset) {

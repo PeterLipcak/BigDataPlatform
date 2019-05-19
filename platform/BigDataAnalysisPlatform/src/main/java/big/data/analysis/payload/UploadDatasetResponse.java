@@ -2,6 +2,9 @@ package big.data.analysis.payload;
 
 import lombok.Data;
 
+/**
+ * @author Peter Lipcak, Masaryk University
+ */
 @Data
 public class UploadDatasetResponse {
     private String fileName;

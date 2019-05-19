@@ -1,32 +1,25 @@
 package big.data.analysis.controller;
 
-import big.data.analysis.entity.Dataset;
 import big.data.analysis.entity.JavaProject;
 import big.data.analysis.exception.CompilationException;
-import big.data.analysis.exception.DatasetStorageException;
 import big.data.analysis.exception.FlinkSubmissionException;
 import big.data.analysis.payload.*;
-import big.data.analysis.service.DatasetsStorageService;
 import big.data.analysis.service.ProcessingCodeService;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.Resource;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
 
+/**
+ * Controller responsible for managing code compilations and submissions
+ * @author Peter Lipcak, Masaryk University
+ */
 @RestController
 public class ProcessingCodeController {
 
@@ -35,6 +28,11 @@ public class ProcessingCodeController {
     @Autowired
     private ProcessingCodeService processingCodeService;
 
+    /**
+     * Rest endpoint responsible for saving the project
+     * @param javaProject to be saved
+     * @return result as JSON with message
+     */
     @CrossOrigin
     @PostMapping("/saveCode")
     public ResponseEntity saveCode(@RequestBody JavaProject javaProject) {
@@ -70,11 +68,16 @@ public class ProcessingCodeController {
                 .body(json);
     }
 
+    /**
+     * Endpoint for code compilation
+     * @param javaProject project to be compiled
+     * @return compilation output in JSON format
+     */
     @CrossOrigin
     @PostMapping("/compileCode")
     public ResponseEntity compileCode(@RequestBody JavaProject javaProject) {
         boolean compiled = false;
-        String compilationOutput = null;
+        String compilationOutput;
         try {
             compilationOutput = processingCodeService.compileCode(javaProject,false);
             compiled = true;
@@ -88,7 +91,6 @@ public class ProcessingCodeController {
             e.printStackTrace();
             compilationOutput = e.getMessage();
         }
-
 
         String contentType = "application/json";
         GsonBuilder builder = new GsonBuilder();
@@ -112,7 +114,11 @@ public class ProcessingCodeController {
                 .body(json);
     }
 
-
+    /**
+     * Rest endpoint responsible for submitting the processing code to flink
+     * @param javaProject project to be compiled and submitted
+     * @return result of compilation and submission
+     */
     @CrossOrigin
     @PostMapping("/submitCode")
     public ResponseEntity submitCode(@RequestBody JavaProject javaProject) {
@@ -169,7 +175,12 @@ public class ProcessingCodeController {
     }
 
 
-
+    /**
+     * Helper method for response creation with simple message and result code
+     * @param message to be sent back
+     * @param success true if operation was successful
+     * @return ResponseEntity with corresponding information
+     */
     public ResponseEntity getMessageResponseEntity(String message, boolean success){
         String contentType = "application/json";
         GsonBuilder builder = new GsonBuilder();
