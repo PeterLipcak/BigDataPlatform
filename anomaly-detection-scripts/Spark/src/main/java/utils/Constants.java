@@ -1,5 +1,8 @@
 package utils;
 
+/**
+ * @author Peter Lipcak, Masaryk University
+ */
 public final class Constants {
 
     private Constants() {

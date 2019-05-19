@@ -2,18 +2,17 @@ package entities;
 
 import org.apache.storm.shade.org.joda.time.DateTime;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Objects;
 
+/**
+ * @author Peter Lipcak, Masaryk University
+ */
 public class Consumption implements Serializable {
     private int id;
-    private Date measurementTimestamp = null;
+    private Date measurementTimestamp;
     private double consumption;
 
     public Consumption(String csvRow) throws ParseException {
@@ -23,12 +22,6 @@ public class Consumption implements Serializable {
         id = Integer.parseInt(values[0]);
         measurementTimestamp = simpleDateFormat.parse(values[1]);
         consumption = Double.parseDouble(values[2]);
-    }
-
-    public Consumption(int id, Date measurementTimestamp, double consumption) {
-        this.id = id;
-        this.measurementTimestamp = measurementTimestamp;
-        this.consumption = consumption;
     }
 
     public Date getMeasurementTimestamp() {

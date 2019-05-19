@@ -32,7 +32,11 @@ import utils.Constants;
 import utils.EnvironmentVariablesHelper;
 
 
-
+/**
+ * Implementation of model based anomaly detection algorithm
+ *
+ * @author Peter Lipcak, Masaryk University
+ */
 public class ModelBasedAnomalyDetection {
 
     private static Logger LOG = LoggerFactory.getLogger(ModelBasedAnomalyDetection.class);
@@ -94,19 +98,25 @@ public class ModelBasedAnomalyDetection {
      * @throws IOException if problem connecting to HDFS
      */
     private static Map<String, Double> loadAnomalyPredictionModel() throws IOException {
+        //Set up hdfs configuration
         Configuration hdfsConf = new Configuration();
         hdfsConf.addResource(new Path("/usr/local/hadoop/etc/hadoop/core-site.xml"));
         hdfsConf.addResource(new Path("/usr/local/hadoop/etc/hadoop/hdfs-site.xml"));
         hdfsConf.set("fs.hdfs.impl", org.apache.hadoop.hdfs.DistributedFileSystem.class.getName());
         hdfsConf.set("fs.file.impl", org.apache.hadoop.fs.LocalFileSystem.class.getName());
+
+        //Get file system of hdfs
         FileSystem fs = null;
         try {
             fs = FileSystem.get(new URI(hdfsUri + "/datasets/predictions.csv"), hdfsConf);
         } catch (Exception e) {
             LOG.info(e.toString());
         }
+
+        //File or directory is accepted
         FileStatus[] fileStatus = fs.listStatus(new Path(hdfsUri + "/datasets/predictions.csv"));
 
+        //Iterate over files in directory or file and append expected consumptions to hashmap
         final Map<String, Double> expectedConsumptions = new HashMap<>();
         for (FileStatus status : fileStatus) {
             InputStream is = fs.open(status.getPath());

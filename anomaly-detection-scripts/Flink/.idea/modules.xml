@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/Flink.iml" filepath="$PROJECT_DIR$/Flink.iml" />
       <module fileurl="file://$PROJECT_DIR$/flink.big.data.iml" filepath="$PROJECT_DIR$/flink.big.data.iml" />
+      <module fileurl="file://$PROJECT_DIR$/flink.big.data.iml" filepath="$PROJECT_DIR$/flink.big.data.iml" />
     </modules>
   </component>
 </project>

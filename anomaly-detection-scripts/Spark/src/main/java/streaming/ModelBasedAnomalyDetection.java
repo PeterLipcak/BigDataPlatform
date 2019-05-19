@@ -31,7 +31,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Implementation of consumption data prediction model
+ * Implementation of model based anomaly detection stream processing job
  *
  * @author Peter Lipcak, Masaryk University
  */
@@ -44,9 +44,11 @@ public class ModelBasedAnomalyDetection {
             System.exit(1);
         }
 
+        //Duration of batch interval
         Integer duration = Integer.parseInt(args[0]);
         String webHdfsIpPort = System.getenv("WEB_HDFS_IP_PORT");
 
+        //Spark context creation
         SparkSession spark = SparkSession.builder()
                 .master(EnvironmentVariablesHelper.getSparkIpPort())
                 .appName("ModelBasedAnomalyDetection")
@@ -62,6 +64,7 @@ public class ModelBasedAnomalyDetection {
                 LocationStrategies.PreferConsistent(),
                 ConsumerStrategies.Subscribe(topicsSet, KafkaHelper.getDefaultKafkaParams()));
 
+        //Create rows from records with additional composite id
         JavaDStream<Row> records = messages.map(record -> {
             String[] splits = record.value().split(",");
             Date date = TimeHelper.getDateFromString(splits[1]);
@@ -75,6 +78,7 @@ public class ModelBasedAnomalyDetection {
             );
         });
 
+        //Load anomaly prediction model
         final Dataset<Row> datasetPredicted = spark
                 .read()
                 .format("csv")
@@ -83,6 +87,7 @@ public class ModelBasedAnomalyDetection {
                 .toDF("compositeId","expectedConsumption");
         datasetPredicted.createOrReplaceTempView("predictedConsumptions");
 
+        //Iterate all records
         records.foreachRDD(recordsRdd -> {
             if(recordsRdd.partitions().size() > 0) {
                 StructType schema = DataTypes.createStructType(new StructField[]{
@@ -95,14 +100,17 @@ public class ModelBasedAnomalyDetection {
                 Dataset<Row> consumptionsDataset = spark.sqlContext().createDataFrame(recordsRdd, schema);
                 consumptionsDataset.createOrReplaceTempView("consumptions");
 
+                //Join consumption records with expected consumptions
                 consumptionsDataset = spark.sqlContext().sql("SELECT c.id, c.timestamp, c.consumption, p.expectedConsumption FROM consumptions c LEFT JOIN predictedConsumptions p ON c.compositeId=p.compositeId");
                 consumptionsDataset.createOrReplaceTempView("consumptionsWithPredictions");
 
+                //Filter out anomalies
                 Dataset<Row> anomalies = spark.sqlContext().sql(
                         "SELECT *" +
                                 "FROM consumptionsWithPredictions c " +
                                 "WHERE c.consumption>c.expectedConsumption");
 
+                //Iterate anomalies and send them to Kafka topic anomalies
                 anomalies.foreachPartition(anomaliesPartition -> {
                     Producer<String, String> kafkaProducer = new KafkaProducer(KafkaHelper.getDefaultKafkaParams());
                     while (anomaliesPartition.hasNext()) {
